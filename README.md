@@ -141,8 +141,8 @@ app/src/main/java/com/example/
 
 **Abbas Hussain**
 - **Role**: Full Stack Developer & Mobile Software Engineer
-- **Email**: [abbaspowered@gmail.com](mailto:abbaspowered@gmail.com)
-- **GitHub**: [@abbaspowered](https://github.com/abbaspowered)
+- **Email**: [abbaswebdevelopers@gmail.com](mailto:abbaswebdevelopers@gmail.com)
+- **GitHub**: [@AbbasFullstack](https://github.com/AbbasFullstack)
 
 *If this project helped you or you are interested in collaborating, feel free to reach out or drop a star!* ⭐️
 
