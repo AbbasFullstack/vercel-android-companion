@@ -1,0 +1,6 @@
+{
+  "name": "Vercel Dashboard",
+  "description": "A high-performance Android client for Vercel to manage projects, monitor deployments, inspect build logs, trigger redeploys, and configure domains and environments.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

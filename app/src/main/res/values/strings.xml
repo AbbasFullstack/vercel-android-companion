@@ -1,0 +1,26 @@
+<resources>
+    <string name="app_name">Vercel Dashboard</string>
+    <string name="login_title">Connect your Vercel Account</string>
+    <string name="login_subtitle">Enter your Vercel Personal Access Token to manage your projects and deployments at lightning speed.</string>
+    <string name="token_input_label">Personal Access Token</string>
+    <string name="token_input_hint">e.g. secr_...</string>
+    <string name="token_paste">Paste</string>
+    <string name="token_connect">Connect Account</string>
+    <string name="token_how_to_get">How do I create a Vercel Token?</string>
+    <string name="token_guide_body">1. Log in to vercel.com in your browser\n2. Navigate to Account Settings > Tokens\n3. Click \'Create Token\', set name &amp; expiration\n4. Copy and paste it here.</string>
+    <string name="projects_tab">Projects</string>
+    <string name="deployments_tab">Deployments</string>
+    <string name="account_tab">Account</string>
+    <string name="search_projects">Search projects…</string>
+    <string name="redeploy">Redeploy</string>
+    <string name="redeploy_no_cache">Redeploy without Cache</string>
+    <string name="cancel_deployment">Cancel Deployment</string>
+    <string name="new_project">New Project</string>
+    <string name="logs">Build Logs</string>
+    <string name="domains">Domains</string>
+    <string name="env_vars">Environment Variables</string>
+    <string name="sign_out">Disconnect Account</string>
+    <string name="developer_name">Abbas Hussain</string>
+    <string name="developer_title">Full Stack Developer &amp; Engineer</string>
+    <string name="developer_email">abbaspowered@gmail.com</string>
+</resources>
