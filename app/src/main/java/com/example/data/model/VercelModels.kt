@@ -129,9 +129,33 @@ data class RedeployRequest(
 )
 
 @JsonClass(generateAdapter = true)
+data class GitRepoPayload(
+    @Json(name = "type") val type: String = "github",
+    @Json(name = "repo") val repo: String
+)
+
+@JsonClass(generateAdapter = true)
 data class CreateProjectRequest(
     @Json(name = "name") val name: String,
-    @Json(name = "framework") val framework: String? = null
+    @Json(name = "framework") val framework: String? = null,
+    @Json(name = "gitRepository") val gitRepository: GitRepoPayload? = null,
+    @Json(name = "rootDirectory") val rootDirectory: String? = null,
+    @Json(name = "buildCommand") val buildCommand: String? = null
+)
+
+@JsonClass(generateAdapter = true)
+data class GitSourcePayload(
+    @Json(name = "type") val type: String = "github",
+    @Json(name = "repo") val repo: String,
+    @Json(name = "ref") val ref: String = "main"
+)
+
+@JsonClass(generateAdapter = true)
+data class CreateDeploymentRequest(
+    @Json(name = "name") val name: String,
+    @Json(name = "project") val project: String? = null,
+    @Json(name = "gitSource") val gitSource: GitSourcePayload? = null,
+    @Json(name = "target") val target: String? = "production"
 )
 
 @JsonClass(generateAdapter = true)

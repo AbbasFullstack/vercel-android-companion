@@ -66,6 +66,12 @@ interface VercelApiService {
         @Query("forceNew") forceNew: Int? = null
     ): VercelDeployment
 
+    @POST("v13/deployments")
+    suspend fun createDeployment(
+        @Body request: CreateDeploymentRequest,
+        @Query("teamId") teamId: String? = null
+    ): VercelDeployment
+
     @PATCH("v12/deployments/{id}/cancel")
     suspend fun cancelDeployment(
         @Path("id") id: String,
@@ -138,4 +144,16 @@ object ApiClient {
         .addConverterFactory(MoshiConverterFactory.create())
         .build()
         .create(VercelApiService::class.java)
+
+    private val publicOkHttpClient = OkHttpClient.Builder()
+        .connectTimeout(15, TimeUnit.SECONDS)
+        .readTimeout(15, TimeUnit.SECONDS)
+        .build()
+
+    val gitHubService: GitHubApiService = Retrofit.Builder()
+        .baseUrl("https://api.github.com/")
+        .client(publicOkHttpClient)
+        .addConverterFactory(MoshiConverterFactory.create())
+        .build()
+        .create(GitHubApiService::class.java)
 }

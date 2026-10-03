@@ -77,8 +77,69 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _isCreateProjectOpen = MutableStateFlow(false)
     val isCreateProjectOpen: StateFlow<Boolean> = _isCreateProjectOpen.asStateFlow()
 
+    private val _gitHubRepos = MutableStateFlow<List<GitHubRepo>>(emptyList())
+    val gitHubRepos: StateFlow<List<GitHubRepo>> = _gitHubRepos.asStateFlow()
+
+    private val _isFetchingRepos = MutableStateFlow(false)
+    val isFetchingRepos: StateFlow<Boolean> = _isFetchingRepos.asStateFlow()
+
+    private val _gitHubError = MutableStateFlow<String?>(null)
+    val gitHubError: StateFlow<String?> = _gitHubError.asStateFlow()
+
+    fun fetchGitHubRepos(username: String) {
+        if (username.isBlank()) return
+        viewModelScope.launch {
+            _isFetchingRepos.value = true
+            _gitHubError.value = null
+            val res = repository.getGitHubUserRepos(username.trim())
+            _isFetchingRepos.value = false
+            res.onSuccess { repos ->
+                _gitHubRepos.value = repos
+            }.onFailure { e ->
+                _gitHubError.value = "GitHub repos: ${e.message}"
+            }
+        }
+    }
+
+    private val _connectedGitHubUser = MutableStateFlow("AbbasFullstack")
+    val connectedGitHubUser: StateFlow<String> = _connectedGitHubUser.asStateFlow()
+
+    fun updateConnectedGitHubUser(username: String) {
+        _connectedGitHubUser.value = username.trim()
+        fetchGitHubRepos(username)
+    }
+
+    fun oneClickImport(repo: GitHubRepo) {
+        val framework = detectFramework(repo)
+        val projName = repo.name.lowercase().replace(" ", "-").filter { it.isLetterOrDigit() || it == '-' }
+        createProject(
+            name = projName,
+            framework = framework,
+            gitRepo = repo.fullName,
+            rootDirectory = null,
+            branch = repo.defaultBranch
+        )
+    }
+
+    private fun detectFramework(repo: GitHubRepo): String? {
+        val lowerName = repo.name.lowercase()
+        val lowerDesc = repo.description?.lowercase() ?: ""
+        return when {
+            lowerName.contains("next") || lowerDesc.contains("next") -> "nextjs"
+            lowerName.contains("vite") || lowerDesc.contains("vite") -> "vite"
+            lowerName.contains("astro") || lowerDesc.contains("astro") -> "astro"
+            lowerName.contains("remix") || lowerDesc.contains("remix") -> "remix"
+            lowerName.contains("svelte") || lowerDesc.contains("svelte") -> "sveltekit"
+            lowerName.contains("nuxt") || lowerDesc.contains("nuxt") -> "nuxtjs"
+            lowerName.contains("react") || lowerDesc.contains("react") -> "create-react-app"
+            repo.language.equals("TypeScript", ignoreCase = true) || repo.language.equals("JavaScript", ignoreCase = true) -> "nextjs"
+            else -> null
+        }
+    }
+
     init {
         viewModelScope.launch {
+            fetchGitHubRepos(_connectedGitHubUser.value)
             repository.initializeToken()
             activeToken.collect { token ->
                 if (token != null) {
@@ -275,16 +336,51 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _isCreateProjectOpen.value = false
     }
 
-    fun createProject(name: String, framework: String?) {
+    fun createProject(
+        name: String,
+        framework: String?,
+        gitRepo: String? = null,
+        rootDirectory: String? = null,
+        branch: String = "main"
+    ) {
         viewModelScope.launch {
             _isLoading.value = true
             val teamId = _selectedTeam.value?.id
-            val res = repository.createProject(name = name, framework = framework, teamId = teamId)
+            val res = repository.createProject(
+                name = name,
+                framework = framework,
+                gitRepo = gitRepo,
+                rootDirectory = rootDirectory,
+                teamId = teamId
+            )
             _isLoading.value = false
             res.onSuccess { createdProj ->
                 closeCreateProject()
                 refreshDashboard()
-                openProject(createdProj)
+                if (!gitRepo.isNullOrBlank()) {
+                    viewModelScope.launch {
+                        _isLoading.value = true
+                        val deployRes = repository.deployGitRepo(
+                            name = name,
+                            projectName = createdProj.name,
+                            gitRepo = gitRepo,
+                            branch = branch,
+                            teamId = teamId
+                        )
+                        _isLoading.value = false
+                        deployRes.onSuccess { dpl ->
+                            refreshDashboard()
+                            _currentScreen.value = Screen.DeploymentDetail(dpl)
+                            loadDeploymentLogs(dpl.uid)
+                        }.onFailure { err ->
+                            _errorMessage.value = "Project created! Deployment info: ${err.message}"
+                            openProject(createdProj)
+                            refreshDashboard()
+                        }
+                    }
+                } else {
+                    openProject(createdProj)
+                }
             }.onFailure { e ->
                 _errorMessage.value = "Failed to create project: ${e.message}"
             }

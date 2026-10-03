@@ -8,9 +8,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.ui.components.CreatorWelcomeDialog
 import com.example.ui.components.RedeployDialog
 import com.example.ui.screens.auth.TokenInputScreen
 import com.example.ui.screens.dashboard.DashboardScreen
@@ -56,6 +60,18 @@ fun VercelApp(viewModel: MainViewModel = viewModel()) {
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
     val projectToRedeploy by viewModel.projectToRedeploy.collectAsStateWithLifecycle()
     val isCreateProjectOpen by viewModel.isCreateProjectOpen.collectAsStateWithLifecycle()
+    val gitHubRepos by viewModel.gitHubRepos.collectAsStateWithLifecycle()
+    val isFetchingRepos by viewModel.isFetchingRepos.collectAsStateWithLifecycle()
+    val gitHubError by viewModel.gitHubError.collectAsStateWithLifecycle()
+    val connectedGitHubUser by viewModel.connectedGitHubUser.collectAsStateWithLifecycle()
+
+    var showCreatorWelcome by rememberSaveable { mutableStateOf(true) }
+
+    if (showCreatorWelcome) {
+        CreatorWelcomeDialog(
+            onDismiss = { showCreatorWelcome = false }
+        )
+    }
 
     when (val screen = currentScreen) {
         is Screen.Auth -> {
@@ -87,7 +103,12 @@ fun VercelApp(viewModel: MainViewModel = viewModel()) {
                 onViewLogsClick = { deployment -> viewModel.openDeployment(deployment) },
                 onOpenCreateProject = { viewModel.openCreateProject() },
                 onOpenRedeploy = { project -> viewModel.openRedeployDialog(project) },
-                onSignOut = { viewModel.signOut() }
+                onSignOut = { viewModel.signOut() },
+                gitHubRepos = gitHubRepos,
+                isFetchingRepos = isFetchingRepos,
+                connectedGitHubUser = connectedGitHubUser,
+                onFetchGitHubRepos = { u -> viewModel.fetchGitHubRepos(u) },
+                onOneClickImport = { repo -> viewModel.oneClickImport(repo) }
             )
         }
 
@@ -142,10 +163,14 @@ fun VercelApp(viewModel: MainViewModel = viewModel()) {
     if (isCreateProjectOpen) {
         CreateProjectWizard(
             selectedTeam = selectedTeam,
+            gitHubRepos = gitHubRepos,
+            isFetchingRepos = isFetchingRepos,
+            gitHubError = gitHubError,
             isLoading = isLoading,
+            onFetchRepos = { username -> viewModel.fetchGitHubRepos(username) },
             onDismiss = { viewModel.closeCreateProject() },
-            onCreateProject = { name, framework ->
-                viewModel.createProject(name, framework)
+            onCreateProject = { name, framework, gitRepo, rootDir, branch ->
+                viewModel.createProject(name, framework, gitRepo, rootDir, branch)
             }
         )
     }

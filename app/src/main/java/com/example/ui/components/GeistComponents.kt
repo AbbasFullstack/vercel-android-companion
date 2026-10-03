@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -102,6 +103,8 @@ fun GeistButton(
     }
 }
 
+private val DefaultCardShape = RoundedCornerShape(12.dp)
+
 @Composable
 fun GeistCard(
     modifier: Modifier = Modifier,
@@ -109,23 +112,21 @@ fun GeistCard(
     testTag: String = "geist_card",
     content: @Composable ColumnScope.() -> Unit
 ) {
-    val baseModifier = modifier
-        .testTag(testTag)
-        .fillMaxWidth()
-        .clip(RoundedCornerShape(12.dp))
-        .background(VercelSurface)
-        .border(1.dp, VercelBorder, RoundedCornerShape(12.dp))
-
-    val clickableModifier = if (onClick != null) {
-        baseModifier.clickable(onClick = onClick)
-    } else {
-        baseModifier
+    Surface(
+        modifier = modifier
+            .testTag(testTag)
+            .fillMaxWidth(),
+        shape = DefaultCardShape,
+        color = VercelSurface,
+        border = BorderStroke(1.dp, VercelBorder),
+        onClick = onClick ?: {},
+        enabled = onClick != null
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            content = content
+        )
     }
-
-    Column(
-        modifier = clickableModifier.padding(16.dp),
-        content = content
-    )
 }
 
 @Composable

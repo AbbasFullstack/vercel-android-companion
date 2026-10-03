@@ -22,5 +22,6 @@
     <string name="sign_out">Disconnect Account</string>
     <string name="developer_name">Abbas Hussain</string>
     <string name="developer_title">Full Stack Developer &amp; Engineer</string>
-    <string name="developer_email">abbaspowered@gmail.com</string>
+    <string name="developer_email">abbaswebdevelopers@gmail.com</string>
+    <string name="developer_github">AbbasFullstack</string>
 </resources>

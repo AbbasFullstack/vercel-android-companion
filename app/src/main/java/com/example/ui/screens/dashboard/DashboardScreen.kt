@@ -1,6 +1,9 @@
 package com.example.ui.screens.dashboard
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.animation.*
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -19,12 +22,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.example.R
 import com.example.data.local.TokenEntity
 import com.example.data.model.*
 import com.example.ui.components.*
@@ -56,6 +64,11 @@ fun DashboardScreen(
     onOpenCreateProject: () -> Unit,
     onOpenRedeploy: (VercelProject) -> Unit,
     onSignOut: () -> Unit,
+    gitHubRepos: List<GitHubRepo> = emptyList(),
+    isFetchingRepos: Boolean = false,
+    connectedGitHubUser: String = "AbbasFullstack",
+    onFetchGitHubRepos: (String) -> Unit = {},
+    onOneClickImport: (GitHubRepo) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var currentTab by remember { mutableStateOf(BottomNavTab.PROJECTS) }
@@ -411,7 +424,11 @@ fun DashboardScreen(
                                 }
                             }
                         } else {
-                            items(filteredProjects, key = { it.id }) { project ->
+                            items(
+                                items = filteredProjects,
+                                key = { it.id },
+                                contentType = { "project_card" }
+                            ) { project ->
                                 ProjectCard(
                                     project = project,
                                     onProjectClick = { onProjectClick(project) },
@@ -503,7 +520,11 @@ fun DashboardScreen(
                                 }
                             }
                         } else {
-                            items(filteredDeployments, key = { it.uid }) { deployment ->
+                            items(
+                                items = filteredDeployments,
+                                key = { it.uid },
+                                contentType = { "deployment_card" }
+                            ) { deployment ->
                                 DeploymentCard(
                                     deployment = deployment,
                                     onDeploymentClick = { onDeploymentClick(deployment) },
@@ -571,7 +592,7 @@ fun DashboardScreen(
                                         )
                                         Spacer(modifier = Modifier.height(2.dp))
                                         Text(
-                                            text = "3-step guided deployment for Next.js, Vite, React & Astro",
+                                            text = "37 Framework Presets & Custom Configuration",
                                             color = VercelGrayLight,
                                             fontSize = 12.sp
                                         )
@@ -581,6 +602,153 @@ fun DashboardScreen(
                                         contentDescription = null,
                                         tint = VercelGrayLight
                                     )
+                                }
+                            }
+                        }
+
+                        // Connected GitHub Repositories (1-Click Import)
+                        item {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(8.dp)
+                                            .clip(CircleShape)
+                                            .background(StatusReady)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "CONNECTED GITHUB: @$connectedGitHubUser",
+                                        color = VercelWhitePure,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        fontFamily = FontFamily.Monospace
+                                    )
+                                }
+
+                                Text(
+                                    text = "1-Click Import ⚡",
+                                    color = StatusReady,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                        }
+
+                        if (isFetchingRepos) {
+                            item {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(80.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    CircularProgressIndicator(
+                                        color = VercelWhitePure,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                            }
+                        } else if (gitHubRepos.isEmpty()) {
+                            item {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(VercelSurfaceVariant)
+                                        .border(1.dp, VercelBorder, RoundedCornerShape(8.dp))
+                                        .padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        text = "Fetch repositories for @$connectedGitHubUser",
+                                        color = VercelGrayLight,
+                                        fontSize = 12.sp
+                                    )
+                                    Button(
+                                        onClick = { onFetchGitHubRepos(connectedGitHubUser) },
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = VercelWhitePure,
+                                            contentColor = VercelBlack
+                                        ),
+                                        shape = RoundedCornerShape(6.dp),
+                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                                    ) {
+                                        Text("Fetch", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+                        } else {
+                            items(gitHubRepos, key = { it.id }) { repo ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(VercelSurfaceVariant)
+                                        .border(1.dp, VercelBorder, RoundedCornerShape(8.dp))
+                                        .padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = repo.name,
+                                            color = VercelWhitePure,
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        if (!repo.description.isNullOrBlank()) {
+                                            Text(
+                                                text = repo.description,
+                                                color = VercelGrayLight,
+                                                fontSize = 11.sp,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.height(3.dp))
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            if (!repo.language.isNullOrBlank()) {
+                                                Text(
+                                                    text = repo.language,
+                                                    color = VercelBlueLight,
+                                                    fontSize = 10.sp,
+                                                    fontFamily = FontFamily.Monospace
+                                                )
+                                            }
+                                            Text(
+                                                text = "⭐ ${repo.stars}",
+                                                color = VercelGray,
+                                                fontSize = 10.sp
+                                            )
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.width(8.dp))
+
+                                    Button(
+                                        onClick = { onOneClickImport(repo) },
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = VercelWhitePure,
+                                            contentColor = VercelBlack
+                                        ),
+                                        shape = RoundedCornerShape(6.dp),
+                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                                    ) {
+                                        Text("⚡ 1-Click Import", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    }
                                 }
                             }
                         }
@@ -874,49 +1042,56 @@ fun DashboardScreen(
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold
                                 )
-                                Spacer(modifier = Modifier.height(6.dp))
+                                Spacer(modifier = Modifier.height(8.dp))
 
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .clip(RoundedCornerShape(8.dp))
+                                        .clip(RoundedCornerShape(10.dp))
                                         .background(VercelSurfaceVariant)
-                                        .border(1.dp, VercelBorder, RoundedCornerShape(8.dp))
-                                        .padding(10.dp)
+                                        .border(1.dp, VercelBorder, RoundedCornerShape(10.dp))
+                                        .padding(12.dp)
                                 ) {
-                                    Box(
+                                    Image(
+                                        painter = painterResource(id = R.drawable.abbas_profile),
+                                        contentDescription = "Abbas Hussain",
+                                        contentScale = ContentScale.Crop,
                                         modifier = Modifier
-                                            .size(36.dp)
+                                            .size(52.dp)
                                             .clip(CircleShape)
-                                            .background(VercelBlue.copy(alpha = 0.2f))
-                                            .border(1.dp, VercelBlueLight.copy(alpha = 0.5f), CircleShape),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            text = "AH",
-                                            color = VercelBlueLight,
-                                            fontSize = 13.sp,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
-                                    Spacer(modifier = Modifier.width(12.dp))
+                                            .border(1.5.dp, VercelBlueLight, CircleShape)
+                                    )
+                                    Spacer(modifier = Modifier.width(14.dp))
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
                                             text = "Abbas Hussain",
                                             color = VercelWhitePure,
-                                            fontSize = 14.sp,
+                                            fontSize = 15.sp,
                                             fontWeight = FontWeight.Bold
                                         )
                                         Text(
-                                            text = "Full Stack Developer",
+                                            text = "Full Stack Developer • @AbbasFullstack",
                                             color = StatusReady,
                                             fontSize = 11.sp,
                                             fontWeight = FontWeight.Medium
                                         )
+                                        Spacer(modifier = Modifier.height(3.dp))
                                         Text(
-                                            text = "abbaspowered@gmail.com",
+                                            text = "📞 03088361404",
+                                            color = VercelWhite,
+                                            fontSize = 11.sp,
+                                            fontFamily = FontFamily.Monospace
+                                        )
+                                        Text(
+                                            text = "✉️ abbaswebdevelopers@gmail.com",
                                             color = VercelGrayLight,
+                                            fontSize = 11.sp,
+                                            fontFamily = FontFamily.Monospace
+                                        )
+                                        Text(
+                                            text = "🌐 abbas-portfolio-beta.vercel.app",
+                                            color = VercelBlueLight,
                                             fontSize = 11.sp,
                                             fontFamily = FontFamily.Monospace
                                         )

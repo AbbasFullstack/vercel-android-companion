@@ -135,18 +135,98 @@ class VercelRepository(
             }
         }
 
-    suspend fun createProject(name: String, framework: String?, teamId: String?): Result<VercelProject> =
-        withContext(Dispatchers.IO) {
-            try {
-                val project = api.createProject(
-                    request = CreateProjectRequest(name = name, framework = framework),
-                    teamId = teamId
-                )
-                Result.success(project)
-            } catch (e: Exception) {
-                Result.failure(e)
+    fun parseErrorMessage(e: Exception): String {
+        if (e is retrofit2.HttpException) {
+            val errorBody = e.response()?.errorBody()?.string()
+            if (!errorBody.isNullOrBlank()) {
+                try {
+                    val json = JSONObject(errorBody)
+                    val errObj = json.optJSONObject("error")
+                    if (errObj != null) {
+                        val msg = errObj.optString("message")
+                        if (msg.isNotBlank()) return msg
+                    }
+                    val msg = json.optString("message")
+                    if (msg.isNotBlank()) return msg
+                } catch (_: Exception) {}
+                return errorBody
             }
         }
+        return e.message ?: "An unknown error occurred"
+    }
+
+    suspend fun getGitHubUserRepos(username: String): Result<List<GitHubRepo>> = withContext(Dispatchers.IO) {
+        try {
+            val cleanUser = username.trim().removePrefix("@")
+            val repos = ApiClient.gitHubService.getUserRepos(cleanUser)
+            Result.success(repos)
+        } catch (e: Exception) {
+            Result.failure(Exception(parseErrorMessage(e)))
+        }
+    }
+
+    suspend fun createProject(
+        name: String,
+        framework: String?,
+        gitRepo: String? = null,
+        rootDirectory: String? = null,
+        buildCommand: String? = null,
+        teamId: String?
+    ): Result<VercelProject> = withContext(Dispatchers.IO) {
+        try {
+            val gitPayload = if (!gitRepo.isNullOrBlank()) {
+                val cleanRepo = gitRepo.trim()
+                    .removePrefix("https://github.com/")
+                    .removePrefix("http://github.com/")
+                    .removePrefix("github.com/")
+                    .removeSuffix(".git")
+                GitRepoPayload(type = "github", repo = cleanRepo)
+            } else null
+
+            val project = api.createProject(
+                request = CreateProjectRequest(
+                    name = name,
+                    framework = framework,
+                    gitRepository = gitPayload,
+                    rootDirectory = if (rootDirectory.isNullOrBlank()) null else rootDirectory.trim(),
+                    buildCommand = if (buildCommand.isNullOrBlank()) null else buildCommand.trim()
+                ),
+                teamId = teamId
+            )
+            Result.success(project)
+        } catch (e: Exception) {
+            Result.failure(Exception(parseErrorMessage(e)))
+        }
+    }
+
+    suspend fun deployGitRepo(
+        name: String,
+        projectName: String,
+        gitRepo: String,
+        branch: String = "main",
+        teamId: String?
+    ): Result<VercelDeployment> = withContext(Dispatchers.IO) {
+        try {
+            val cleanRepo = gitRepo.trim()
+                .removePrefix("https://github.com/")
+                .removePrefix("http://github.com/")
+                .removePrefix("github.com/")
+                .removeSuffix(".git")
+
+            val deployment = api.createDeployment(
+                request = CreateDeploymentRequest(
+                    name = name,
+                    project = projectName,
+                    gitSource = GitSourcePayload(type = "github", repo = cleanRepo, ref = branch),
+                    target = "production"
+                ),
+                teamId = teamId
+            )
+            Result.success(deployment)
+        } catch (e: Exception) {
+            Result.failure(Exception(parseErrorMessage(e)))
+        }
+    }
 
     suspend fun getDeployments(
         projectId: String? = null,
